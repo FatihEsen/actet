@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-carbon-light;
+  }
+  
+  body {
+    @apply bg-racing-dark text-silver font-display;
+    background: linear-gradient(135deg, #0A0A0A 0%, #1A1A1A 100%);
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  html {
+    font-size: 16px;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-carbon;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-neon-blue rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-neon-blue/80;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-carbon/50 backdrop-blur-md border border-carbon-light/30 rounded-lg;
+  }
+
+  .racing-button {
+    @apply px-4 py-2 bg-carbon border border-carbon-light/50 rounded-md text-silver font-medium transition-all duration-200 hover:bg-carbon-light hover:border-neon-blue/50 active:scale-95;
+  }
+
+  .racing-button.active {
+    @apply bg-neon-blue text-racing-dark border-neon-blue;
+  }
+
+  .racing-button.danger {
+    @apply border-neon-red/50 hover:bg-neon-red hover:text-white;
+  }
+
+  .racing-button.warning {
+    @apply border-neon-orange/50 hover:bg-neon-orange hover:text-white;
+  }
+
+  .racing-button.success {
+    @apply border-neon-green/50 hover:bg-neon-green hover:text-racing-dark;
+  }
+
+  .gauge-container {
+    @apply relative flex items-center justify-center;
+  }
+
+  .gauge-svg {
+    @apply w-full h-full;
+  }
+
+  .gauge-value {
+    @apply absolute inset-0 flex items-center justify-center font-racing font-bold;
+  }
+
+  .warning-flash {
+    animation: warning-flash 0.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes warning-flash {
+    0% { opacity: 1; }
+    100% { opacity: 0.3; }
+  }
+
+  .signal-flash {
+    animation: signal-flash 1s ease-in-out infinite;
+  }
+
+  @keyframes signal-flash {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.2; }
+  }
+
+  .hazard-flash {
+    animation: hazard-flash 0.7s ease-in-out infinite;
+  }
+
+  @keyframes hazard-flash {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.2; }
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    .mobile-hide {
+      @apply hidden;
+    }
+    
+    .mobile-full {
+      @apply w-full;
+    }
+    
+    .mobile-stack {
+      @apply flex-col;
+    }
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 0 10px currentColor;
+  }
+
+  .glow {
+    box-shadow: 0 0 20px currentColor;
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 20px theme('colors.neon-blue');
+  }
+
+  .glow-red {
+    box-shadow: 0 0 20px theme('colors.neon-red');
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px theme('colors.neon-green');
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 20px theme('colors.neon-orange');
+  }
+}

@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assetto Corsa Telemetry - Demo</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Racing fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Custom Tailwind configuration */
+        :root {
+            --racing-dark: #0A0A0A;
+            --racing-darker: #050505;
+            --carbon: #1A1A1A;
+            --carbon-light: #2A2A2A;
+            --neon-blue: #00D4FF;
+            --neon-red: #FF3B3B;
+            --neon-green: #00FF94;
+            --neon-orange: #FF8C00;
+            --neon-yellow: #FFD700;
+            --silver: #C4C4C4;
+            --silver-dark: #8C8C8C;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--racing-dark) 0%, var(--carbon) 100%);
+            font-family: 'Rajdhani', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: var(--silver);
+        }
+        
+        .font-racing { font-family: 'Orbitron', monospace; }
+        .font-display { font-family: 'Rajdhani', sans-serif; }
+        
+        .glass-panel {
+            background: rgba(26, 26, 26, 0.5);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(42, 42, 42, 0.3);
+            border-radius: 8px;
+        }
+        
+        .racing-button {
+            padding: 8px 16px;
+            background: var(--carbon);
+            border: 1px solid rgba(42, 42, 42, 0.5);
+            border-radius: 6px;
+            color: var(--silver);
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .racing-button:hover {
+            background: var(--carbon-light);
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+        
+        .racing-button.success {
+            border-color: rgba(0, 255, 148, 0.5);
+        }
+        
+        .racing-button.success:hover {
+            background: var(--neon-green);
+            color: var(--racing-dark);
+        }
+        
+        .text-neon-blue { color: var(--neon-blue); }
+        .text-neon-green { color: var(--neon-green); }
+        .text-neon-red { color: var(--neon-red); }
+        .text-neon-orange { color: var(--neon-orange); }
+        .text-neon-yellow { color: var(--neon-yellow); }
+        .text-silver { color: var(--silver); }
+        .text-silver-dark { color: var(--silver-dark); }
+        
+        .bg-racing-dark { background-color: var(--racing-dark); }
+        .bg-carbon { background-color: var(--carbon); }
+        .bg-carbon-light { background-color: var(--carbon-light); }
+        
+        .gauge-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .gauge-value {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+        
+        .animate-pulse { animation: pulse 2s infinite; }
+        .animate-blink { animation: blink 1s infinite; }
+        
+        .signal-flash { animation: signal-flash 1s infinite; }
+        .hazard-flash { animation: hazard-flash 0.7s infinite; }
+        
+        @keyframes signal-flash {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.2; }
+        }
+        
+        @keyframes hazard-flash {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.2; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen">
+        <!-- Header -->
+        <header class="glass-panel border-b p-4">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-racing font-bold text-neon-blue">AC Telemetry</h1>
+                    <nav class="flex space-x-1">
+                        <button class="px-3 py-2 rounded text-sm font-medium bg-neon-blue text-black">📊 Dashboard</button>
+                        <button class="px-3 py-2 rounded text-sm font-medium hover:bg-gray-700">⚙️ Settings</button>
+                        <button class="px-3 py-2 rounded text-sm font-medium hover:bg-gray-700">🔧 Setup</button>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div id="connection-dot" class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span id="connection-status" class="text-sm font-medium text-red-500">Disconnected</span>
+                    </div>
+                    <button id="demo-btn" class="racing-button success">Demo Mode</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard -->
+        <main class="max-w-7xl mx-auto p-4">
+            <div id="welcome-screen" class="flex flex-col items-center justify-center min-h-[60vh] text-center">
+                <div class="glass-panel p-8 max-w-md">
+                    <h2 class="text-2xl font-racing font-bold text-neon-blue mb-4">Welcome to AC Telemetry</h2>
+                    <p class="text-silver-dark mb-6">Click Demo Mode to see live telemetry data simulation</p>
+                    <button id="start-demo" class="w-full racing-button success">🚗 Start Demo</button>
+                </div>
+            </div>
+
+            <div id="dashboard" class="space-y-6 hidden">
+                <!-- Primary gauges -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Speed Gauge -->
+                        <div class="glass-panel p-4">
+                            <div class="text-center space-y-2">
+                                <h3 class="text-lg font-racing font-bold text-neon-blue">Speed</h3>
+                                <div class="gauge-container" style="width: 180px; height: 180px; margin: 0 auto;">
+                                    <svg width="180" height="180" class="transform -rotate-90">
+                                        <circle cx="90" cy="90" r="85" fill="none" stroke="var(--carbon-light)" stroke-width="8" stroke-linecap="round"/>
+                                        <circle id="speed-progress" cx="90" cy="90" r="85" fill="none" stroke="var(--neon-blue)" stroke-width="8" 
+                                               stroke-linecap="round" stroke-dasharray="534" stroke-dashoffset="534" 
+                                               style="filter: drop-shadow(0 0 6px var(--neon-blue))"/>
+                                    </svg>
+                                    <div class="gauge-value">
+                                        <div class="text-center">
+                                            <div id="speed-value" class="text-3xl font-racing font-bold text-neon-blue">0</div>
+                                            <div class="text-sm text-silver-dark">KM/H</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RPM Gauge -->
+                        <div class="glass-panel p-4">
+                            <div class="text-center space-y-2">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <h3 class="text-lg font-racing font-bold text-neon-blue">RPM</h3>
+                                    <div id="shift-lights" class="flex space-x-1 hidden">
+                                        <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                        <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                        <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                    </div>
+                                </div>
+                                <div class="gauge-container" style="width: 180px; height: 180px; margin: 0 auto;">
+                                    <svg width="180" height="180" class="transform -rotate-90">
+                                        <circle cx="90" cy="90" r="85" fill="none" stroke="var(--carbon-light)" stroke-width="8" stroke-linecap="round"/>
+                                        <circle id="rpm-progress" cx="90" cy="90" r="85" fill="none" stroke="var(--neon-green)" stroke-width="8" 
+                                               stroke-linecap="round" stroke-dasharray="534" stroke-dashoffset="534" 
+                                               style="filter: drop-shadow(0 0 6px var(--neon-green))"/>
+                                    </svg>
+                                    <div class="gauge-value">
+                                        <div class="text-center">
+                                            <div id="rpm-value" class="text-3xl font-racing font-bold text-neon-green">800</div>
+                                            <div class="text-sm text-silver-dark">RPM</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Secondary info -->
+                    <div class="lg:col-span-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <!-- Gear Display -->
+                        <div class="glass-panel p-4">
+                            <div class="text-center">
+                                <h3 class="text-sm font-racing font-bold text-silver-dark mb-2">GEAR</h3>
+                                <div id="gear-display" class="w-16 h-16 rounded-lg border-2 border-neon-blue flex items-center justify-center text-3xl font-racing font-bold text-neon-blue mx-auto">
+                                    N
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fuel Display -->
+                        <div class="glass-panel p-4">
+                            <div class="text-center">
+                                <h3 class="text-sm font-racing font-bold text-silver-dark mb-2">FUEL</h3>
+                                <div class="space-y-2">
+                                    <div class="w-full h-4 bg-carbon rounded-full overflow-hidden">
+                                        <div id="fuel-bar" class="h-full bg-neon-blue transition-all duration-300" style="width: 80%; filter: drop-shadow(0 0 4px var(--neon-blue));"></div>
+                                    </div>
+                                    <div id="fuel-value" class="text-lg font-racing font-bold text-neon-blue">65.0L</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indicators -->
+                        <div class="glass-panel p-4">
+                            <div class="text-center">
+                                <h3 class="text-sm font-racing font-bold text-silver-dark mb-2">SYSTEMS</h3>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div id="abs-indicator" class="text-center">
+                                        <div class="w-8 h-8 rounded bg-green-500 flex items-center justify-center text-xs font-bold mx-auto">ABS</div>
+                                    </div>
+                                    <div id="tc-indicator" class="text-center">
+                                        <div class="w-8 h-8 rounded bg-yellow-500 flex items-center justify-center text-xs font-bold mx-auto">TC</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced telemetry -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <!-- Tire Temperatures -->
+                    <div class="glass-panel p-4">
+                        <h3 class="text-lg font-racing font-bold text-neon-blue mb-4">Tire Temperatures</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <div class="text-xs text-center text-silver-dark">FRONT</div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="glass-panel p-2 text-center">
+                                        <div class="text-xs font-bold">FL</div>
+                                        <div id="tire-fl" class="text-sm font-racing font-bold text-green-400">85°C</div>
+                                    </div>
+                                    <div class="glass-panel p-2 text-center">
+                                        <div class="text-xs font-bold">FR</div>
+                                        <div id="tire-fr" class="text-sm font-racing font-bold text-green-400">85°C</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="text-xs text-center text-silver-dark">REAR</div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="glass-panel p-2 text-center">
+                                        <div class="text-xs font-bold">RL</div>
+                                        <div id="tire-rl" class="text-sm font-racing font-bold text-green-400">80°C</div>
+                                    </div>
+                                    <div class="glass-panel p-2 text-center">
+                                        <div class="text-xs font-bold">RR</div>
+                                        <div id="tire-rr" class="text-sm font-racing font-bold text-green-400">80°C</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lap Times -->
+                    <div class="glass-panel p-4">
+                        <h3 class="text-lg font-racing font-bold text-neon-blue mb-4">Lap Times</h3>
+                        <div class="space-y-3">
+                            <div class="text-center">
+                                <div class="text-sm text-silver-dark">CURRENT LAP</div>
+                                <div id="current-lap" class="text-2xl font-racing font-bold text-neon-blue">1:32.456</div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="text-center">
+                                    <div class="text-xs text-silver-dark">BEST LAP</div>
+                                    <div id="best-lap" class="text-lg font-racing font-bold text-neon-green">1:31.850</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-xs text-silver-dark">DELTA</div>
+                                    <div id="delta" class="text-lg font-racing font-bold text-red-400">+0.606</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="glass-panel p-4">
+                    <h3 class="text-lg font-racing font-bold text-neon-blue text-center mb-4">Car Controls</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <button id="abs-btn" class="racing-button success">🛡️ ABS</button>
+                        <button id="tc-btn" class="racing-button">⚡ TC: 3</button>
+                        <button id="left-signal" class="racing-button">⬅️ Left Signal</button>
+                        <button id="right-signal" class="racing-button">➡️ Right Signal</button>
+                        <button id="hazards" class="racing-button">⚠️ Hazards</button>
+                        <button id="headlights" class="racing-button">💡 Lights</button>
+                        <button id="drs-btn" class="racing-button">💨 DRS</button>
+                        <button id="pit-limiter" class="racing-button">🏁 Pit Limiter</button>
+                    </div>
+                    
+                    <!-- Signal indicators -->
+                    <div id="signal-indicators" class="flex justify-center items-center space-x-4 mt-4 hidden">
+                        <div id="left-indicator" class="flex items-center space-x-2 signal-flash hidden">
+                            <div class="w-3 h-3 bg-orange-500 rounded-full"></div>
+                            <span class="text-orange-500 font-bold">LEFT</span>
+                        </div>
+                        <div id="right-indicator" class="flex items-center space-x-2 signal-flash hidden">
+                            <span class="text-orange-500 font-bold">RIGHT</span>
+                            <div class="w-3 h-3 bg-orange-500 rounded-full"></div>
+                        </div>
+                        <div id="hazard-indicator" class="flex items-center space-x-2 hazard-flash hidden">
+                            <span class="text-red-500 font-bold">⚠️ HAZARD ⚠️</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Telemetry simulation data
+        let isRunning = false;
+        let telemetryData = {
+            speed: 0,
+            rpm: 800,
+            gear: 0,
+            fuel: 65,
+            maxFuel: 80,
+            tireTemp: [85, 85, 80, 80],
+            lapTime: 0,
+            bestLap: 91850, // 1:31.850 in milliseconds
+            currentLap: 0,
+            abs: true,
+            tc: 3,
+            leftSignal: false,
+            rightSignal: false,
+            hazards: false,
+            headlights: false,
+            drs: false,
+            pitLimiter: false
+        };
+
+        // UI Elements
+        const elements = {
+            welcomeScreen: document.getElementById('welcome-screen'),
+            dashboard: document.getElementById('dashboard'),
+            connectionDot: document.getElementById('connection-dot'),
+            connectionStatus: document.getElementById('connection-status'),
+            demoBtn: document.getElementById('demo-btn'),
+            startDemo: document.getElementById('start-demo'),
+            speedValue: document.getElementById('speed-value'),
+            speedProgress: document.getElementById('speed-progress'),
+            rpmValue: document.getElementById('rpm-value'),
+            rpmProgress: document.getElementById('rpm-progress'),
+            shiftLights: document.getElementById('shift-lights'),
+            gearDisplay: document.getElementById('gear-display'),
+            fuelValue: document.getElementById('fuel-value'),
+            fuelBar: document.getElementById('fuel-bar'),
+            tires: {
+                fl: document.getElementById('tire-fl'),
+                fr: document.getElementById('tire-fr'),
+                rl: document.getElementById('tire-rl'),
+                rr: document.getElementById('tire-rr')
+            },
+            currentLap: document.getElementById('current-lap'),
+            bestLap: document.getElementById('best-lap'),
+            delta: document.getElementById('delta'),
+            signalIndicators: document.getElementById('signal-indicators'),
+            leftIndicator: document.getElementById('left-indicator'),
+            rightIndicator: document.getElementById('right-indicator'),
+            hazardIndicator: document.getElementById('hazard-indicator')
+        };
+
+        // Utility functions
+        function formatTime(milliseconds) {
+            const totalSeconds = milliseconds / 1000;
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = (totalSeconds % 60).toFixed(3).padStart(6, '0');
+            return `${minutes}:${seconds}`;
+        }
+
+        function updateGauge(progressElement, value, max, strokeDasharray = 534) {
+            const progress = Math.max(0, Math.min(1, value / max));
+            const offset = strokeDasharray - (strokeDasharray * progress);
+            progressElement.style.strokeDashoffset = offset;
+        }
+
+        function getTempColor(temp) {
+            if (temp < 60) return '#00D4FF'; // cold - blue
+            if (temp < 80) return '#00FF94'; // optimal - green
+            if (temp < 100) return '#FFD700'; // warm - yellow
+            if (temp < 120) return '#FF8C00'; // hot - orange
+            return '#FF3B3B'; // overheating - red
+        }
+
+        function updateUI() {
+            // Speed gauge
+            elements.speedValue.textContent = Math.round(telemetryData.speed);
+            updateGauge(elements.speedProgress, telemetryData.speed, 400);
+
+            // RPM gauge
+            elements.rpmValue.textContent = Math.round(telemetryData.rpm);
+            updateGauge(elements.rpmProgress, telemetryData.rpm, 8000);
+            
+            // Shift lights
+            if (telemetryData.rpm > 7600) {
+                elements.shiftLights.classList.remove('hidden');
+            } else {
+                elements.shiftLights.classList.add('hidden');
+            }
+
+            // Gear display
+            const gearText = telemetryData.gear === 0 ? 'N' : telemetryData.gear === -1 ? 'R' : telemetryData.gear.toString();
+            elements.gearDisplay.textContent = gearText;
+
+            // Fuel
+            const fuelPercent = (telemetryData.fuel / telemetryData.maxFuel) * 100;
+            elements.fuelValue.textContent = `${telemetryData.fuel.toFixed(1)}L`;
+            elements.fuelBar.style.width = `${fuelPercent}%`;
+
+            // Tire temperatures
+            const tireElements = [elements.tires.fl, elements.tires.fr, elements.tires.rl, elements.tires.rr];
+            telemetryData.tireTemp.forEach((temp, index) => {
+                if (tireElements[index]) {
+                    tireElements[index].textContent = `${Math.round(temp)}°C`;
+                    tireElements[index].style.color = getTempColor(temp);
+                }
+            });
+
+            // Lap times
+            elements.currentLap.textContent = formatTime(telemetryData.currentLap);
+            elements.bestLap.textContent = formatTime(telemetryData.bestLap);
+            const delta = telemetryData.currentLap - telemetryData.bestLap;
+            elements.delta.textContent = delta > 0 ? `+${(delta/1000).toFixed(3)}` : `${(delta/1000).toFixed(3)}`;
+            elements.delta.style.color = delta > 0 ? '#FF3B3B' : '#00FF94';
+
+            // Signal indicators
+            const hasSignals = telemetryData.leftSignal || telemetryData.rightSignal || telemetryData.hazards;
+            elements.signalIndicators.classList.toggle('hidden', !hasSignals);
+            
+            elements.leftIndicator.classList.toggle('hidden', !telemetryData.leftSignal && !telemetryData.hazards);
+            elements.rightIndicator.classList.toggle('hidden', !telemetryData.rightSignal && !telemetryData.hazards);
+            elements.hazardIndicator.classList.toggle('hidden', !telemetryData.hazards);
+        }
+
+        function simulateTelemetry() {
+            if (!isRunning) return;
+
+            const time = Date.now() / 1000;
+
+            // Simulate realistic racing data
+            telemetryData.speed = Math.max(0, 120 + Math.sin(time * 0.3) * 80 + Math.random() * 10);
+            telemetryData.rpm = Math.max(800, 3000 + Math.sin(time * 0.5) * 2000 + Math.random() * 200);
+            telemetryData.gear = Math.min(6, Math.max(1, Math.floor(telemetryData.speed / 25)));
+            
+            // Fuel consumption
+            telemetryData.fuel = Math.max(0, telemetryData.fuel - 0.001);
+            
+            // Tire temperature simulation
+            telemetryData.tireTemp = telemetryData.tireTemp.map(temp => 
+                Math.max(40, Math.min(120, temp + (Math.random() - 0.5) * 1))
+            );
+
+            // Lap time simulation
+            telemetryData.currentLap = (Date.now() % 120000); // 2 minute lap cycle
+
+            updateUI();
+        }
+
+        function startDemo() {
+            isRunning = true;
+            elements.welcomeScreen.classList.add('hidden');
+            elements.dashboard.classList.remove('hidden');
+            
+            // Update connection status
+            elements.connectionDot.className = 'w-3 h-3 rounded-full bg-yellow-500 animate-pulse';
+            elements.connectionStatus.textContent = 'Simulating';
+            elements.connectionStatus.className = 'text-sm font-medium text-yellow-500';
+            elements.demoBtn.textContent = 'Stop Demo';
+            
+            // Start simulation loop
+            const interval = setInterval(() => {
+                if (!isRunning) {
+                    clearInterval(interval);
+                    return;
+                }
+                simulateTelemetry();
+            }, 50); // 20 FPS
+        }
+
+        function stopDemo() {
+            isRunning = false;
+            elements.welcomeScreen.classList.remove('hidden');
+            elements.dashboard.classList.add('hidden');
+            
+            // Update connection status
+            elements.connectionDot.className = 'w-3 h-3 rounded-full bg-red-500';
+            elements.connectionStatus.textContent = 'Disconnected';
+            elements.connectionStatus.className = 'text-sm font-medium text-red-500';
+            elements.demoBtn.textContent = 'Demo Mode';
+        }
+
+        // Event listeners
+        elements.demoBtn.addEventListener('click', () => {
+            if (isRunning) {
+                stopDemo();
+            } else {
+                startDemo();
+            }
+        });
+
+        elements.startDemo.addEventListener('click', startDemo);
+
+        // Control button handlers
+        document.getElementById('abs-btn').addEventListener('click', (e) => {
+            telemetryData.abs = !telemetryData.abs;
+            e.target.classList.toggle('success', telemetryData.abs);
+        });
+
+        document.getElementById('left-signal').addEventListener('click', (e) => {
+            telemetryData.leftSignal = !telemetryData.leftSignal;
+            if (telemetryData.leftSignal) {
+                telemetryData.rightSignal = false;
+                telemetryData.hazards = false;
+            }
+            e.target.classList.toggle('success', telemetryData.leftSignal);
+            document.getElementById('right-signal').classList.remove('success');
+            document.getElementById('hazards').classList.remove('success');
+        });
+
+        document.getElementById('right-signal').addEventListener('click', (e) => {
+            telemetryData.rightSignal = !telemetryData.rightSignal;
+            if (telemetryData.rightSignal) {
+                telemetryData.leftSignal = false;
+                telemetryData.hazards = false;
+            }
+            e.target.classList.toggle('success', telemetryData.rightSignal);
+            document.getElementById('left-signal').classList.remove('success');
+            document.getElementById('hazards').classList.remove('success');
+        });
+
+        document.getElementById('hazards').addEventListener('click', (e) => {
+            telemetryData.hazards = !telemetryData.hazards;
+            if (telemetryData.hazards) {
+                telemetryData.leftSignal = false;
+                telemetryData.rightSignal = false;
+            }
+            e.target.classList.toggle('success', telemetryData.hazards);
+            document.getElementById('left-signal').classList.remove('success');
+            document.getElementById('right-signal').classList.remove('success');
+        });
+
+        // Initialize with welcome screen
+        updateUI();
+    </script>
+</body>
+</html>

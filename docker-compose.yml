@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # Main telemetry dashboard
+  telemetry-dashboard:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      - udp-bridge
+    restart: unless-stopped
+
+  # UDP to WebSocket bridge server
+  udp-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.bridge
+    ports:
+      - "8080:8080"  # WebSocket port
+      - "9996:9996/udp"  # UDP port for AC
+    environment:
+      - UDP_PORT=9996
+      - WS_PORT=8080
+    restart: unless-stopped
+
+  # Optional: Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - telemetry-dashboard
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  node_modules:
